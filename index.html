@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <title>사이버 셰프 티라노의 마스터 키친 방탈출 (정답 보기 5개 확장판)</title>
+  <style>
+    @font-face {
+      font-family: 'Jua';
+      src: url('./Jua-Regular.ttf') format('truetype'), url('./Jua.ttf') format('truetype');
+      font-weight: normal; font-style: normal;
+    }
+
+    :root {
+      --bg: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 100%);
+      --panel: rgba(30, 41, 59, 0.85);
+      --border: rgba(56, 189, 248, 0.3);
+      --accent-cyan: #38bdf8;
+      --accent-amber: #fbbf24;
+      --accent-green: #34d399;
+      --accent-red: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+      font-family: 'Jua', 'Apple SD Gothic Neo', system-ui, sans-serif;
+    }
+
+    html, body {
+      width: 100vw; height: 100vh; overflow: hidden; margin: 0; padding: 0;
+      background: var(--bg); color: #f8fafc;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(-8px, -4px) rotate(-1deg); }
+      40% { transform: translate(8px, 4px) rotate(1deg); }
+      60% { transform: translate(-6px, 4px) rotate(0deg); }
+      80% { transform: translate(6px, -4px) rotate(0deg); }
+    }
+    .shake { animation: screenShake 0.45s ease both; }
+
+    #vfxCanvas {
+      position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 999;
+    }
+
+    .wrapper {
+      width: 100vw; height: 100vh; max-width: 1300px;
+      padding: clamp(8px, 1.2vh, 14px) clamp(12px, 1.8vw, 22px);
+      display: flex; flex-direction: column; justify-content: space-between;
+      gap: clamp(6px, 1vh, 10px); overflow: hidden; position: relative;
+    }
+
+    .header {
+      background: var(--panel); backdrop-filter: blur(12px);
+      border: 2px solid var(--border); border-radius: 18px;
+      padding: 8px 18px; display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4); flex-shrink: 0; height: clamp(46px, 6.5vh, 56px);
+    }
+    .title {
+      font-size: clamp(15px, 2.3vh, 21px); color: var(--accent-cyan);
+      text-shadow: 0 0 12px rgba(56, 189, 248, 0.6); display: flex; align-items: center; gap: 10px;
+    }
+    .stage-tabs { display: flex; gap: 6px; overflow-x: auto; }
+    .stage-btn {
+      appearance: none; border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(15, 23, 42, 0.6); color: #94a3b8; padding: 4px 12px;
+      border-radius: 10px; font-size: clamp(11px, 1.6vh, 13.5px); cursor: pointer; white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .stage-btn.active {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-color: #fde68a; color: #fff; box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+    }
+
+    .timer-bar {
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(251, 191, 36, 0.4); border-radius: 14px;
+      padding: 6px 16px; display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; height: clamp(40px, 5.5vh, 46px); box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .timer-left { display: flex; align-items: center; gap: 8px; }
+    .timer-label { color: var(--accent-amber); font-size: clamp(12px, 1.8vh, 15px); font-weight: 900; }
+    .timer-input {
+      background: #0f172a; border: 2px solid #64748b; color: var(--accent-cyan);
+      font-size: clamp(15px, 2vh, 18px); font-weight: 900; width: 65px; text-align: center; border-radius: 8px; outline: none;
+    }
+    .timer-display { font-size: clamp(18px, 2.8vh, 24px); font-weight: 900; color: var(--accent-red); }
+    .timer-display.running { color: var(--accent-green); }
+    
+    .total-time-badge {
+      background: rgba(56, 189, 248, 0.15); border: 1.5px solid var(--accent-cyan);
+      color: #7dd3fc; padding: 4px 12px; border-radius: 10px; font-size: clamp(12px, 1.7vh, 14.5px); font-weight: 900;
+    }
+
+    .timer-right { display: flex; gap: 6px; }
+    .t-btn {
+      appearance: none; border: none; border-radius: 8px; padding: 3px 12px;
+      font-size: clamp(11px, 1.6vh, 14px); font-weight: 900; cursor: pointer; color: #fff;
+    }
+    .btn-start { background: linear-gradient(135deg, #10b981, #059669); }
+    .btn-stop  { background: linear-gradient(135deg, #ef4444, #991b1b); }
+    .btn-reset { background: #475569; }
+
+    .progress-bar {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex-shrink: 0; height: clamp(34px, 4.5vh, 40px);
+    }
+    .prog-step {
+      background: var(--panel); border: 2px solid rgba(255,255,255,0.08); color: #64748b;
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: clamp(11.5px, 1.7vh, 14px); font-weight: 900; cursor: pointer; transition: all 0.2s ease;
+    }
+    .prog-step.current { background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #fcd34d; }
+    .prog-step.unlocked { background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #6ee7b7; }
+
+    .main-box {
+      flex: 1 1 0; min-height: 0; background: linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border: 3px solid rgba(56, 189, 248, 0.35); border-radius: 20px; padding: clamp(10px, 1.4vh, 16px);
+      display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+
+    .phase-pane {
+      display: none; width: 100%; height: 100%; flex-direction: column; justify-content: space-between; gap: 10px;
+    }
+    .phase-pane.active { display: flex; }
+
+    .crypto-board {
+      flex: 1; background: rgba(15, 23, 42, 0.65); border: 2px dashed rgba(56, 189, 248, 0.4);
+      border-radius: 16px; padding: 12px 18px; display: flex; flex-direction: column; align-items: center; justify-content: space-around;
+    }
+    .crypto-title { font-size: clamp(15px, 2.2vh, 20px); color: #7dd3fc; text-align: center; }
+    .symbol-row { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+    .symbol-box {
+      background: rgba(30, 41, 59, 0.9); border: 2px solid #06b6d4; border-radius: 14px;
+      padding: 10px 24px; display: flex; align-items: center; gap: 12px; font-size: clamp(24px, 3.8vh, 32px);
+    }
+    .symbol-box span.eq { color: var(--accent-amber); }
+
+    .dial-pad {
+      background: rgba(9, 13, 22, 0.85); border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-around; gap: 12px; flex-shrink: 0;
+    }
+    .dial-group { display: flex; gap: 14px; }
+    .dial-item {
+      background: rgba(30, 41, 59, 0.9); border: 2.5px solid #6366f1; border-radius: 14px;
+      padding: 8px 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 140px;
+    }
+    .dial-eq { font-size: clamp(13px, 2vh, 17px); color: #e2e8f0; background: #0f172a; padding: 4px 10px; border-radius: 8px; }
+    .dial-btns { display: flex; align-items: center; gap: 10px; }
+    .dial-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: #334155; color: var(--accent-cyan); font-size: 18px; cursor: pointer; }
+    .dial-val { font-size: clamp(26px, 4.2vh, 36px); color: var(--accent-amber); min-width: 36px; text-align: center; }
+
+    /* 정답 보기가 5개로 확장된 패턴 회로 화면 */
+    .pattern-board {
+      flex: 1; background: rgba(15, 23, 42, 0.65); border: 2px dashed rgba(168, 85, 247, 0.4);
+      border-radius: 16px; padding: 14px; display: flex; flex-direction: column; align-items: center; justify-content: space-around;
+    }
+    .pattern-row { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+    
+    .shape-square { border-radius: 18px !important; }
+    .shape-circle { border-radius: 50% !important; }
+    .shape-triangle {
+      border-radius: 18px !important;
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+
+    .matrix-item {
+      width: clamp(62px, 9vh, 84px); height: clamp(62px, 9vh, 84px);
+      display: flex; align-items: center; justify-content: center; font-size: clamp(24px, 3.8vh, 34px);
+      border: 3.5px solid rgba(255,255,255,0.9); box-shadow: 0 6px 16px rgba(0,0,0,0.4); position: relative;
+    }
+    .c-red    { background: linear-gradient(135deg, #ef4444, #991b1b); }
+    .c-blue   { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+    .c-green  { background: linear-gradient(135deg, #10b981, #065f46); }
+    .c-purple { background: linear-gradient(135deg, #a855f7, #581c87); }
+    .c-mystery {
+      background: rgba(30, 41, 59, 0.9); border: 3.5px dashed var(--accent-amber); color: var(--accent-amber); border-radius: 18px;
+    }
+    .choice-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .choice-btn { cursor: pointer; transition: transform 0.15s ease; }
+    .choice-btn:hover { transform: translateY(-4px); }
+
+    .sim-deck {
+      display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; flex-shrink: 0; height: clamp(145px, 23vh, 185px);
+    }
+    .kitchen-view {
+      background: radial-gradient(circle at 50% 80%, rgba(30, 58, 138, 0.8), rgba(9, 13, 22, 0.95));
+      border: 2px solid rgba(56, 189, 248, 0.4); border-radius: 14px; padding: 8px 12px;
+      display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px;
+    }
+    .status-panel { display: flex; flex-direction: column; justify-content: space-between; gap: 5px; }
+    .stat-box {
+      flex: 1; background: rgba(15, 23, 42, 0.85); border: 1.5px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 5px 10px; display: flex; align-items: center; justify-content: space-between; font-size: clamp(11px, 1.6vh, 13.5px);
+    }
+    .stat-box.active-ok { border-color: #10b981; background: rgba(6, 78, 59, 0.55); }
+    .stat-box.active-fire { border-color: #ef4444; background: rgba(127, 29, 29, 0.55); }
+    .stat-val { font-size: clamp(13px, 2vh, 17px); }
+
+    .burger-zone {
+      background: rgba(255, 255, 255, 0.04); border-radius: 10px; display: flex;
+      flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 6px; position: relative; overflow: hidden;
+    }
+    .plate { width: 85%; height: 10px; background: #e2e8f0; border-radius: 999px; border: 2px solid #94a3b8; }
+    .burger-stack { display: flex; flex-direction: column-reverse; align-items: center; width: 100%; margin-bottom: -2px; }
+    .b-item { margin-top: -3px; }
+    .ly-bun-bot { width: 96px; height: 16px; background: #d97706; border-radius: 4px 4px 12px 12px; border: 2px solid #92400e; }
+    .ly-patty   { width: 102px; height: 14px; background: #78350f; border-radius: 8px; border: 2px solid #451a03; }
+    .ly-cheese  { width: 106px; height: 8px; background: #fbbf24; border-radius: 4px; border: 1.5px solid #d97706; }
+    .ly-veggie  { width: 100px; height: 10px; background: #10b981; border-radius: 99px; border: 1.5px solid #047857; }
+    .ly-sauce   { width: 88px; height: 7px; background: #ef4444; border-radius: 99px; }
+    .ly-bun-top { width: 98px; height: 22px; background: #f59e0b; border-radius: 22px 22px 5px 5px; border: 2px solid #b45309; }
+
+    .dino-box {
+      background: rgba(16, 185, 129, 0.15); border: 2px solid rgba(16, 185, 129, 0.4);
+      border-radius: 14px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center;
+    }
+    .dino-emoji { font-size: clamp(40px, 6.8vh, 56px); line-height: 1; }
+    .dino-msg { font-size: clamp(11px, 1.5vh, 13.5px); color: #a7f3d0; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 8px; width: 95%; }
+
+    .code-board {
+      flex: 1 1 0; min-height: 0; background: rgba(9, 13, 22, 0.85); border: 2px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 6px 10px; display: flex; flex-direction: column; gap: 5px;
+    }
+    .code-header { display: flex; justify-content: space-between; align-items: center; font-size: clamp(11px, 1.7vh, 14px); color: #94a3b8; }
+    .code-slots { flex: 1; display: flex; gap: 8px; align-items: center; overflow-x: auto; padding: 4px; }
+    .code-tile {
+      width: clamp(74px, 10.5vh, 94px); height: clamp(74px, 10.5vh, 94px); background: linear-gradient(180deg, #1e293b, #0f172a);
+      border: 2.5px solid var(--accent-cyan); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; cursor: grab; flex-shrink: 0;
+    }
+    .tile-num { position: absolute; top: 3px; left: 5px; background: #0284c7; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; }
+    .tile-del { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #1e293b; border: 1.5px solid var(--accent-red); color: var(--accent-red); font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .tile-icon { font-size: clamp(24px, 3.6vh, 30px); }
+    .tile-name { font-size: clamp(10px, 1.35vh, 11.5px); color: #f1f5f9; text-align: center; }
+
+    .palette {
+      background: rgba(15, 23, 42, 0.7); border: 1.5px solid rgba(255,255,255,0.08); border-radius: 12px;
+      padding: 5px 8px; display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: nowrap; overflow-x: auto; flex-shrink: 0; height: clamp(62px, 9.5vh, 76px);
+    }
+    .palette-btn {
+      background: rgba(30, 41, 59, 0.9); border: 2px solid #475569; border-radius: 11px;
+      padding: 3px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: clamp(64px, 8vw, 82px); height: 100%; cursor: pointer; flex-shrink: 0;
+    }
+    .palette-btn .p-icon { font-size: clamp(20px, 3vh, 25px); }
+    .palette-btn .p-label { font-size: clamp(10px, 1.3vh, 11px); color: #e2e8f0; margin-top: 2px; white-space: nowrap; }
+
+    .ctrl-bar { display: flex; gap: 8px; flex-shrink: 0; height: clamp(36px, 5.2vh, 42px); }
+    .action-btn {
+      appearance: none; border: none; border-radius: 11px; font-size: clamp(12px, 1.8vh, 15px);
+      color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 14px;
+    }
+    .btn-sub { background: #475569; flex: 0.7; }
+    .btn-bug { background: linear-gradient(135deg, #8b5cf6, #6d28d9); flex: 1.1; }
+    .btn-main { background: linear-gradient(135deg, #10b981, #047857); flex: 1.6; }
+
+    .modal-overlay {
+      position: absolute; inset: 0; background: rgba(9, 13, 22, 0.88); backdrop-filter: blur(8px);
+      z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: rgba(30, 41, 59, 0.95); border: 3px solid var(--accent-cyan); border-radius: 22px;
+      padding: 24px 32px; max-width: 540px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .modal-emoji { font-size: 56px; }
+    .modal-heading { font-size: 24px; color: #f8fafc; }
+    .modal-desc {
+      font-size: 16.5px; color: #fca5a5; background: rgba(127, 29, 29, 0.45);
+      padding: 12px 18px; border-radius: 12px; border: 1.5px solid #ef4444; line-height: 1.4;
+    }
+    .modal-desc.pass { color: #6ee7b7; background: rgba(6, 78, 59, 0.45); border-color: #10b981; }
+    .modal-confirm {
+      background: linear-gradient(135deg, #06b6d4, #2563eb); color: #fff; border: none;
+      border-radius: 12px; padding: 10px 32px; font-size: 18px; cursor: pointer; margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="vfxCanvas"></canvas>
+
+  <div class="wrapper" id="mainWrapper">
+    <!-- 상단 헤더 -->
+    <div class="header">
+      <div class="title">🦖 사이버 셰프 티라노의 마스터 키친 방탈출</div>
+      <div class="stage-tabs">
+        <button class="stage-btn active" onclick="changeStage(0)">1단계</button>
+        <button class="stage-btn" onclick="changeStage(1)">2단계</button>
+        <button class="stage-btn" onclick="changeStage(2)">3단계</button>
+        <button class="stage-btn" onclick="changeStage(3)">4단계</button>
+        <button class="stage-btn" onclick="changeStage(4)">5단계</button>
+      </div>
+    </div>
+
+    <!-- 타이머 바 및 총 소요 시간 배지 -->
+    <div class="timer-bar">
+      <div class="timer-left">
+        <span class="timer-label">⏳ 타이머(초):</span>
+        <input type="number" id="timerInput" class="timer-input" value="30" min="5" max="300">
+      </div>
+      <div class="timer-display" id="timerDisplay">30초</div>
+      <div class="total-time-badge" id="totalTimeBadge">⏱️ 총 소요 시간: 00분 00초</div>
+      <div class="timer-right">
+        <button class="t-btn btn-start" onclick="startTimer()">시작</button>
+        <button class="t-btn btn-stop" onclick="stopTimer()">정지</button>
+        <button class="t-btn btn-reset" onclick="resetTimer()">리셋</button>
+      </div>
+    </div>
+
+    <!-- 3단계 방탈출 단계 탭 -->
+    <div class="progress-bar">
+      <div class="prog-step current" id="tab0" onclick="changePhase(0)">🔐 1. 연산 암호</div>
+      <div class="prog-step" id="tab1" onclick="changePhase(1)">🧩 2. 패턴 회로</div>
+      <div class="prog-step" id="tab2" onclick="changePhase(2)">🍔 3. 요리 코딩</div>
+    </div>
+
+    <!-- 메인 패널 -->
+    <div class="main-box">
+      <!-- PHASE 0: 연산 암호 해독 -->
+      <div class="phase-pane active" id="pane0">
+        <div class="crypto-board">
+          <div class="crypto-title">🔎 각 재료에 숨겨진 숫자를 보고 아래 암호 3자리를 맞추세요!</div>
+          <div class="symbol-row" id="symbolRow"></div>
+        </div>
+        <div class="dial-pad">
+          <div style="font-size: 18px; color: var(--accent-cyan);">🔒 연산 금고 다이얼:</div>
+          <div class="dial-group" id="dialGroup"></div>
+          <button class="action-btn btn-main" style="height: 52px; font-size: 18px;" onclick="verifyDial()">🔓 금고 열기!</button>
+        </div>
+      </div>
+
+      <!-- PHASE 1: 패턴 회로 퍼즐 (정답 보기 5개 제공) -->
+      <div class="phase-pane" id="pane1">
+        <div class="pattern-board">
+          <div class="pattern-row" id="patternRow"></div>
+          <div style="font-size: 15px; color: #c084fc;">👇 아래 5개의 보안 키 중 [ ? ] 칸에 들어갈 완벽한 패턴의 키를 터치하세요!</div>
+          <div class="choice-row" id="choiceRow"></div>
+        </div>
+      </div>
+
+      <!-- PHASE 2: 요리 코딩 시뮬레이터 -->
+      <div class="phase-pane" id="pane2">
+        <div class="sim-deck">
+          <div class="kitchen-view">
+            <div class="status-panel">
+              <div class="stat-box" id="boxGlove">
+                <span>🧤 위생 장갑</span>
+                <span class="stat-val" id="valGlove">미착용 ❌</span>
+              </div>
+              <div class="stat-box" id="boxPrep">
+                <span>🔪 도마/전처리</span>
+                <span class="stat-val" id="valPrep">대기 중</span>
+              </div>
+              <div class="stat-box" id="boxStove">
+                <span>🔥 가스 화덕</span>
+                <span class="stat-val" id="valStove">꺼짐 ⚫</span>
+              </div>
+            </div>
+            <div class="burger-zone">
+              <div class="burger-stack" id="burgerStack"></div>
+              <div class="plate"></div>
+            </div>
+          </div>
+          <div class="dino-box">
+            <div class="dino-emoji" id="dinoEmoji">🦖</div>
+            <div class="dino-msg" id="dinoMsg">절차에 맞춰 코딩을 시작하세요!</div>
+          </div>
+        </div>
+
+        <div class="code-board">
+          <div class="code-header">
+            <span>📋 코딩 시퀀스 (드래그 순서 변경 / × 삭제)</span>
+            <span id="codeCount" style="color:var(--accent-cyan);">0단계</span>
+          </div>
+          <div class="code-slots" id="codeSlots"></div>
+        </div>
+
+        <div class="palette" id="palette"></div>
+
+        <div class="ctrl-bar">
+          <button class="action-btn btn-sub" onclick="clearCode()">🗑️ 초기화</button>
+          <button class="action-btn btn-bug" onclick="loadBugCode()">🐞 해커의 버그 코드 고치기</button>
+          <button class="action-btn btn-main" onclick="runSimulator()">🚀 시뮬레이터 가동</button>
+        </div>
+      </div>
+
+      <!-- 결과 팝업 모달 -->
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+          <div class="modal-emoji" id="modalEmoji">🎉</div>
+          <div class="modal-heading" id="modalHeading">알림</div>
+          <div class="modal-desc" id="modalDesc">메시지</div>
+          <button class="modal-confirm" onclick="closeModal()">확인</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  /* ⏱️ 총 소요 시간 측정 변수 */
+  let totalElapsedSec = 0;
+  let totalTimerInterval = null;
+
+  function startTotalTimer() {
+    if (totalTimerInterval) return;
+    totalElapsedSec = 0;
+    updateTotalTimeDisplay();
+    totalTimerInterval = setInterval(() => {
+      totalElapsedSec++;
+      updateTotalTimeDisplay();
+    }, 1000);
+  }
+
+  function stopTotalTimer() {
+    if (totalTimerInterval) {
+      clearInterval(totalTimerInterval);
+      totalTimerInterval = null;
+    }
+  }
+
+  function updateTotalTimeDisplay() {
+    const mm = String(Math.floor(totalElapsedSec / 60)).padStart(2, '0');
+    const ss = String(totalElapsedSec % 60).padStart(2, '0');
+    document.getElementById('totalTimeBadge').textContent = `⏱️ 총 소요 시간: ${mm}분 ${ss}초`;
+  }
+
+  /* 🎆 파티클 VFX 엔진 */
+  const canvas = document.getElementById('vfxCanvas');
+  const ctx = canvas.getContext('2d');
+  let pts = [];
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function addParticles(x, y, count, colors) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 8 + 2;
+      pts.push({
+        x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1, size: Math.random() * 5 + 3, gravity: 0.16
+      });
+    }
+  }
+
+  function fireworkShow() {
+    const w = canvas.width, h = canvas.height;
+    const cols = ['#38bdf8', '#fbbf24', '#10b981', '#ec4899', '#a855f7', '#ffffff'];
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => addParticles(w * (0.2 + Math.random() * 0.6), h * (0.2 + Math.random() * 0.4), 55, cols), i * 200);
+    }
+  }
+
+  function screenShake() {
+    const box = document.getElementById('mainWrapper');
+    box.classList.remove('shake');
+    void box.offsetWidth;
+    box.classList.add('shake');
+    addParticles(canvas.width * 0.5, canvas.height * 0.45, 70, ['#ef4444', '#f97316', '#fbbf24', '#1e293b']);
+  }
+
+  function loopVfx() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = pts.length - 1; i >= 0; i--) {
+      let p = pts[i];
+      p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.alpha -= 0.02;
+      if (p.alpha <= 0) { pts.splice(i, 1); continue; }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    requestAnimationFrame(loopVfx);
+  }
+  loopVfx();
+
+  let aCtx = null;
+  function getA() {
+    if (!aCtx) aCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (aCtx.state === 'suspended') aCtx.resume();
+    return aCtx;
+  }
+  function beep(f, type, dur, delay=0, vol=0.15) {
+    try {
+      const c = getA(), osc = c.createOscillator(), g = c.createGain();
+      osc.type = type; osc.frequency.setValueAtTime(f, c.currentTime + delay);
+      g.gain.setValueAtTime(vol, c.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + dur);
+      osc.connect(g); g.connect(c.destination);
+      osc.start(c.currentTime + delay); osc.stop(c.currentTime + delay + dur);
+    } catch(e){}
+  }
+  const S_FX = {
+    click: () => beep(750, 'sine', 0.05),
+    dial: () => beep(580, 'triangle', 0.06),
+    step: (i) => beep([523, 587, 659, 698, 784, 880][i%6], 'sine', 0.12),
+    unlock: () => [523, 659, 784, 1046].forEach((f, idx) => beep(f, 'triangle', 0.2, idx*0.09, 0.2)),
+    boom: () => { beep(140, 'sawtooth', 0.35); beep(90, 'square', 0.4, 0.08); },
+    win: () => [523, 659, 784, 1046, 1318].forEach((f, i) => beep(f, 'triangle', 0.3, i*0.11, 0.2)),
+    bell: () => [1046, 1318, 1568, 2093].forEach((f, i) => beep(f, 'sine', 0.6, i*0.12, 0.25))
+  };
+
+  let tInterval = null, leftSec = 30, tRunning = false;
+  function updateTimer() { document.getElementById('timerDisplay').textContent = `${leftSec}초`; }
+  window.startTimer = () => {
+    if (tRunning) return; S_FX.click();
+    const v = parseInt(document.getElementById('timerInput').value, 10) || 30;
+    if (leftSec <= 0 || leftSec > v) leftSec = v;
+    tRunning = true; document.getElementById('timerDisplay').classList.add('running');
+    updateTimer();
+    tInterval = setInterval(() => {
+      leftSec--; updateTimer();
+      if (leftSec <= 0) { S_FX.bell(); fireworkShow(); leftSec = parseInt(document.getElementById('timerInput').value, 10) || 30; }
+    }, 1000);
+  };
+  window.stopTimer = () => { S_FX.click(); tRunning = false; document.getElementById('timerDisplay').classList.remove('running'); if(tInterval) clearInterval(tInterval); };
+  window.resetTimer = () => { window.stopTimer(); leftSec = parseInt(document.getElementById('timerInput').value, 10) || 30; updateTimer(); };
+
+  const BLOCKS = {
+    wear_gloves: { name: '위생장갑 끼기', icon: '🧤' },
+    bottom_bun:  { name: '아랫빵 깔기',   icon: '🥯' },
+    fire_on:     { name: '가스불 켜기',   icon: '🔥' },
+    grill_meat:  { name: '패티 굽기',     icon: '🥩' },
+    fire_off:    { name: '가스불 끄기',   icon: '🧯' },
+    put_meat:    { name: '구운패티 올리기', icon: '🍖' },
+    put_cheese:  { name: '치즈 올리기',   icon: '🧀' },
+    wash_veggie: { name: '채소 씻기',     icon: '💧' },
+    cut_veggie:  { name: '채소 칼로썰기', icon: '🔪' },
+    put_veggie:  { name: '썬채소 올리기', icon: '🥗' },
+    open_sauce:  { name: '소스뚜껑 열기', icon: '🔓' },
+    pour_sauce:  { name: '특제소스 뿌리기', icon: '🥫' },
+    top_bun:     { name: '윗빵 덮기',     icon: '🍔' }
+  };
+
+  /* 
+     🔥 [정답 보기 5개가 제공되는 1~5단계 비대칭 순환 패턴 데이터]
+     - 각 단계별로 정답 1개와 오답 보기 4개를 포함하여 총 5개의 보기가 렌더링됨.
+  */
+  const STAGES = [
+    {
+      title: '1단계: 수제 치즈버거',
+      crypto: { syms: [{icon:'🍅', val:4}, {icon:'🧀', val:3}, {icon:'🍄', val:2}], eqs: [{label:'🍅 + 🧀 = ?', ans:7}, {label:'🍅 + 🍄 = ?', ans:6}, {label:'🍅 - 🍄 = ?', ans:2}] },
+      pattern: {
+        fullSeq: [
+          {bg:'c-green', shape:'shape-square', icon:'🧀'},
+          {bg:'c-blue', shape:'shape-circle', icon:'🍗'},
+          {bg:'c-purple', shape:'shape-triangle', icon:'🥗'},
+          {bg:'c-green', shape:'shape-square', icon:'🍔'},
+          {bg:'c-blue', shape:'shape-circle', icon:'🧀'},
+          {bg:'c-purple', shape:'shape-triangle', icon:'🍗'}
+        ],
+        choices: [
+          {bg:'c-green', shape:'shape-circle', icon:'🥗', ok:false},
+          {bg:'c-blue', shape:'shape-triangle', icon:'🍔', ok:false},
+          {bg:'c-purple', shape:'shape-square', icon:'🧀', ok:false},
+          {bg:'c-purple', shape:'shape-triangle', icon:'🍗', ok:true}, // 정답
+          {bg:'c-blue', shape:'shape-square', icon:'🍗', ok:false}
+        ]
+      },
+      palette: ['wear_gloves', 'bottom_bun', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'put_cheese', 'top_bun'],
+      reqs: ['wear_gloves', 'bottom_bun', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'put_cheese', 'top_bun'],
+      bug: ['wear_gloves', 'bottom_bun', 'grill_meat', 'fire_on', 'put_meat', 'put_cheese', 'top_bun']
+    },
+    {
+      title: '2단계: 채소버거',
+      crypto: { syms: [{icon:'🥩', val:5}, {icon:'🥬', val:3}, {icon:'🥯', val:4}], eqs: [{label:'🥩 + 🥬 = ?', ans:8}, {label:'🥯 + 🥯 = ?', ans:8}, {label:'🥩 + 🥯 - 🥬 = ?', ans:6}] },
+      pattern: {
+        fullSeq: [
+          {bg:'c-blue', shape:'shape-triangle', icon:'🥗'},
+          {bg:'c-purple', shape:'shape-square', icon:'🧀'},
+          {bg:'c-green', shape:'shape-circle', icon:'🍔'},
+          {bg:'c-blue', shape:'shape-triangle', icon:'🍗'},
+          {bg:'c-purple', shape:'shape-square', icon:'🥗'},
+          {bg:'c-green', shape:'shape-circle', icon:'🧀'}
+        ],
+        choices: [
+          {bg:'c-green', shape:'shape-square', icon:'🍔', ok:false},
+          {bg:'c-purple', shape:'shape-triangle', icon:'🥗', ok:false},
+          {bg:'c-green', shape:'shape-circle', icon:'🧀', ok:true}, // 정답
+          {bg:'c-blue', shape:'shape-square', icon:'🧀', ok:false},
+          {bg:'c-blue', shape:'shape-triangle', icon:'🍗', ok:false}
+        ]
+      },
+      palette: ['wear_gloves', 'bottom_bun', 'wash_veggie', 'cut_veggie', 'put_veggie', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'top_bun'],
+      reqs: ['wear_gloves', 'bottom_bun', 'wash_veggie', 'cut_veggie', 'put_veggie', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'top_bun'],
+      bug: ['wear_gloves', 'bottom_bun', 'cut_veggie', 'wash_veggie', 'put_veggie', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'top_bun']
+    },
+    {
+      title: '3단계: 볼케이노 금고',
+      crypto: { syms: [{icon:'🔥', val:6}, {icon:'🥫', val:4}, {icon:'🧀', val:5}], eqs: [{label:'🔥 + 🥫 - 🧀 = ?', ans:5}, {label:'🧀 + 🧀 - 🔥 = ?', ans:4}, {label:'🔥 + 🧀 - 🥫 = ?', ans:7}] },
+      pattern: {
+        fullSeq: [
+          {bg:'c-purple', shape:'shape-circle', icon:'🍔'},
+          {bg:'c-green', shape:'shape-triangle', icon:'🥗'},
+          {bg:'c-blue', shape:'shape-square', icon:'🍗'},
+          {bg:'c-purple', shape:'shape-circle', icon:'🧀'},
+          {bg:'c-green', shape:'shape-triangle', icon:'🍔'},
+          {bg:'c-blue', shape:'shape-square', icon:'🥗'}
+        ],
+        choices: [
+          {bg:'c-green', shape:'shape-square', icon:'🍗', ok:false},
+          {bg:'c-blue', shape:'shape-square', icon:'🥗', ok:true}, // 정답
+          {bg:'c-purple', shape:'shape-circle', icon:'🍔', ok:false},
+          {bg:'c-green', shape:'shape-circle', icon:'🧀', ok:false},
+          {bg:'c-blue', shape:'shape-triangle', icon:'🍗', ok:false}
+        ]
+      },
+      palette: ['wear_gloves', 'bottom_bun', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'put_cheese', 'open_sauce', 'pour_sauce', 'top_bun'],
+      reqs: ['wear_gloves', 'bottom_bun', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'put_cheese', 'open_sauce', 'pour_sauce', 'top_bun'],
+      bug: ['bottom_bun', 'wear_gloves', 'fire_on', 'grill_meat', 'put_meat', 'put_cheese', 'pour_sauce', 'open_sauce', 'fire_off', 'top_bun']
+    },
+    {
+      title: '4단계: 메가 치킨버거',
+      crypto: { syms: [{icon:'🍗', val:7}, {icon:'🧀', val:2}, {icon:'🥬', val:4}], eqs: [{label:'🍗 - 🧀 = ?', ans:5}, {label:'🥬 + 🧀 = ?', ans:6}, {label:'🍗 - 🥬 = ?', ans:3}] },
+      pattern: {
+        fullSeq: [
+          {bg:'c-green', shape:'shape-square', icon:'🍗'},
+          {bg:'c-blue', shape:'shape-circle', icon:'🧀'},
+          {bg:'c-purple', shape:'shape-triangle', icon:'🍔'},
+          {bg:'c-green', shape:'shape-square', icon:'🥗'},
+          {bg:'c-blue', shape:'shape-circle', icon:'🍗'},
+          {bg:'c-purple', shape:'shape-triangle', icon:'🧀'}
+        ],
+        choices: [
+          {bg:'c-purple', shape:'shape-triangle', icon:'🧀', ok:true}, // 정답
+          {bg:'c-green', shape:'shape-square', icon:'🥗', ok:false},
+          {bg:'c-blue', shape:'shape-circle', icon:'🍗', ok:false},
+          {bg:'c-green', shape:'shape-circle', icon:'🍔', ok:false},
+          {bg:'c-purple', shape:'shape-square', icon:'🥗', ok:false}
+        ]
+      },
+      palette: ['wear_gloves', 'bottom_bun', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'put_cheese', 'top_bun'],
+      reqs: ['wear_gloves', 'bottom_bun', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'put_cheese', 'top_bun'],
+      bug: ['wear_gloves', 'bottom_bun', 'grill_meat', 'fire_on', 'put_meat', 'put_cheese', 'top_bun']
+    },
+    {
+      title: '5단계: 타이탄 금고',
+      crypto: { syms: [{icon:'🍔', val:9}, {icon:'🔥', val:3}, {icon:'🥫', val:2}], eqs: [{label:'🍔 - 🔥 = ?', ans:6}, {label:'🔥 + 🥫 = ?', ans:5}, {label:'🍔 - 🥫 = ?', ans:7}] },
+      pattern: {
+        fullSeq: [
+          {bg:'c-blue', shape:'shape-triangle', icon:'🥗'},
+          {bg:'c-purple', shape:'shape-circle', icon:'🧀'},
+          {bg:'c-green', shape:'shape-square', icon:'🍗'},
+          {bg:'c-blue', shape:'shape-triangle', icon:'🍔'},
+          {bg:'c-purple', shape:'shape-circle', icon:'🥗'},
+          {bg:'c-green', shape:'shape-square', icon:'🧀'}
+        ],
+        choices: [
+          {bg:'c-blue', shape:'shape-circle', icon:'🧀', ok:false},
+          {bg:'c-green', shape:'shape-square', icon:'🧀', ok:true}, // 정답
+          {bg:'c-purple', shape:'shape-triangle', icon:'🥗', ok:false},
+          {bg:'c-blue', shape:'shape-square', icon:'🍔', ok:false},
+          {bg:'c-green', shape:'shape-circle', icon:'🍗', ok:false}
+        ]
+      },
+      palette: ['wear_gloves', 'bottom_bun', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'put_cheese', 'open_sauce', 'pour_sauce', 'top_bun'],
+      reqs: ['wear_gloves', 'bottom_bun', 'fire_on', 'grill_meat', 'fire_off', 'put_meat', 'put_cheese', 'open_sauce', 'pour_sauce', 'top_bun'],
+      bug: ['bottom_bun', 'wear_gloves', 'fire_on', 'grill_meat', 'fire_off', 'open_sauce', 'pour_sauce', 'fire_off', 'top_bun']
+    }
+  ];
+
+  let state = { stageIdx: 0, phaseIdx: 0, dialVals: [0,0,0], codeSeq: [], isBusy: false };
+
+  window.changeStage = (idx) => {
+    if (state.isBusy) return; S_FX.click();
+    state.stageIdx = idx;
+    document.querySelectorAll('.stage-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+    state.dialVals = [0,0,0]; state.codeSeq = [];
+    document.querySelectorAll('.prog-step').forEach(el => el.classList.remove('unlocked'));
+    changePhase(0); initPhase0(); initPhase1(); initPhase2();
+  };
+
+  window.changePhase = (pIdx) => {
+    if (state.isBusy) return; S_FX.click();
+    state.phaseIdx = pIdx;
+    for (let i = 0; i < 3; i++) {
+      document.getElementById(`pane${i}`).classList.toggle('active', i === pIdx);
+      document.getElementById(`tab${i}`).classList.toggle('current', i === pIdx);
+    }
+  };
+
+  function initPhase0() {
+    const s = STAGES[state.stageIdx];
+    document.getElementById('symbolRow').innerHTML = s.crypto.syms.map(sy => `
+      <div class="symbol-box"><span>${sy.icon}</span><span class="eq">= ${sy.val}</span></div>
+    `).join('');
+    renderDials();
+  }
+  function renderDials() {
+    const s = STAGES[state.stageIdx];
+    const grp = document.getElementById('dialGroup'); grp.innerHTML = '';
+    s.crypto.eqs.forEach((eq, idx) => {
+      grp.innerHTML += `
+        <div class="dial-item">
+          <div class="dial-eq">${eq.label}</div>
+          <div class="dial-btns">
+            <button class="dial-btn" onclick="turnDial(${idx}, -1)">◀</button>
+            <div class="dial-val" id="dialNum_${idx}">${state.dialVals[idx]}</div>
+            <button class="dial-btn" onclick="turnDial(${idx}, 1)">▶</button>
+          </div>
+        </div>`;
+    });
+  }
+  window.turnDial = (idx, d) => {
+    S_FX.dial(); state.dialVals[idx] = (state.dialVals[idx] + d + 10) % 10;
+    document.getElementById(`dialNum_${idx}`).textContent = state.dialVals[idx];
+  };
+  window.verifyDial = () => {
+    const s = STAGES[state.stageIdx];
+    const ok = s.crypto.eqs.every((e, i) => e.ans === state.dialVals[i]);
+    if (ok) {
+      S_FX.unlock(); fireworkShow();
+      document.getElementById('tab0').classList.add('unlocked');
+      openModal('🔓', '연산 암호 해독 성공!', '수리 암호를 정확하게 풀었어요!', true, () => changePhase(1));
+    } else {
+      S_FX.boom(); screenShake();
+      openModal('🚨', '금고 암호 불일치', '덧셈과 뺄셈 계산을 다시 확인해 보세요!', false);
+    }
+  };
+
+  function initPhase1() {
+    const s = STAGES[state.stageIdx];
+    const full = s.pattern.fullSeq;
+    const visiblePart = full.slice(0, full.length - 1);
+
+    document.getElementById('patternRow').innerHTML = visiblePart.map(it => `
+      <div class="matrix-item ${it.bg} ${it.shape}"><span>${it.icon}</span></div>
+    `).join('') + `<div class="matrix-item c-mystery shape-square"><span>?</span></div>`;
+
+    // 🔥 정답 보기를 5개로 확장하여 렌더링 (순서도 매번 셔플)
+    let shuffledChoices = [...s.pattern.choices];
+    for (let i = shuffledChoices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledChoices[i], shuffledChoices[j]] = [shuffledChoices[j], shuffledChoices[i]];
+    }
+
+    const choiceBox = document.getElementById('choiceRow'); choiceBox.innerHTML = '';
+    shuffledChoices.forEach(ch => {
+      const btn = document.createElement('div');
+      btn.className = `matrix-item ${ch.bg} ${ch.shape} choice-btn`;
+      btn.innerHTML = `<span>${ch.icon}</span>`;
+      btn.addEventListener('click', () => {
+        if (ch.ok) {
+          S_FX.unlock(); fireworkShow();
+          document.getElementById('tab1').classList.add('unlocked');
+          openModal('⚡', '패턴 회로 가동 완료!', '마스터 키친 요리 코딩을 시작하세요!', true, () => changePhase(2));
+        } else {
+          S_FX.boom(); screenShake();
+          openModal('❓', '회로 패턴 불일치', '색상, 모양, 음식 종류가 각기 다른 주기로 엇갈려 도는 규칙을 관찰해 보세요!', false);
+        }
+      });
+      choiceBox.appendChild(btn);
+    });
+  }
+
+  function resetKitchen() {
+    document.getElementById('burgerStack').innerHTML = '';
+    document.getElementById('boxGlove').className = 'stat-box';
+    document.getElementById('boxPrep').className = 'stat-box';
+    document.getElementById('boxStove').className = 'stat-box';
+    document.getElementById('valGlove').textContent = '미착용 ❌';
+    document.getElementById('valPrep').textContent = '대기 중';
+    document.getElementById('valStove').textContent = '꺼짐 ⚫';
+    document.getElementById('dinoEmoji').textContent = '🦖';
+    document.getElementById('dinoMsg').textContent = '절차에 맞춰 코딩을 시작하세요!';
+  }
+
+  function renderCodeSlots() {
+    const slots = document.getElementById('codeSlots');
+    document.getElementById('codeCount').textContent = `${state.codeSeq.length}단계`;
+    slots.innerHTML = '';
+    state.codeSeq.forEach((id, idx) => {
+      const b = BLOCKS[id];
+      slots.innerHTML += `
+        <div class="code-tile">
+          <div class="tile-num">${idx + 1}</div>
+          <div class="tile-del" onclick="removeTile(${idx})">×</div>
+          <div class="tile-icon">${b.icon}</div>
+          <div class="tile-name">${b.name}</div>
+        </div>`;
+    });
+  }
+
+  window.removeTile = (idx) => {
+    if (state.isBusy) return; S_FX.click();
+    state.codeSeq.splice(idx, 1); renderCodeSlots();
+  };
+
+  function initPhase2() {
+    const s = STAGES[state.stageIdx];
+    resetKitchen();
+    
+    let shuffledPalette = [...s.palette];
+    for (let i = shuffledPalette.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledPalette[i], shuffledPalette[j]] = [shuffledPalette[j], shuffledPalette[i]];
+    }
+
+    const pal = document.getElementById('palette'); pal.innerHTML = '';
+    shuffledPalette.forEach(id => {
+      const b = BLOCKS[id];
+      const btn = document.createElement('div');
+      btn.className = 'palette-btn';
+      btn.innerHTML = `<span class="p-icon">${b.icon}</span><span class="p-label">${b.name}</span>`;
+      btn.addEventListener('click', (e) => {
+        if (state.isBusy) return; S_FX.click();
+        addParticles(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight - 50, 8, ['#38bdf8', '#fbbf24']);
+        state.codeSeq.push(id); renderCodeSlots();
+      });
+      pal.appendChild(btn);
+    });
+    renderCodeSlots();
+  }
+
+  window.clearCode = () => { if (state.isBusy) return; S_FX.click(); state.codeSeq = []; resetKitchen(); renderCodeSlots(); };
+  window.loadBugCode = () => {
+    if (state.isBusy) return; S_FX.unlock();
+    const s = STAGES[state.stageIdx];
+    state.codeSeq = [...s.bug]; resetKitchen(); renderCodeSlots();
+    openModal('🐞', '해커의 버그 코드 주입!', '시뮬레이터를 가동하여 어디서 오류가 나는지 찾아 수정해 보세요!', true);
+  };
+
+  window.runSimulator = () => {
+    if (state.isBusy) return;
+    if (state.codeSeq.length === 0) { S_FX.boom(); openModal('❗', '시퀀스 비어 있음', '명령어 블록을 추가해 주세요!', false); return; }
+
+    state.isBusy = true; resetKitchen();
+    const st = { gloves: false, bread: false, fire: false, grilled: false, pattyOn: false, washed: false, cut: false, sauceOpen: false, topBun: false, done: new Set() };
+    const slots = document.querySelectorAll('.code-tile');
+    let pointer = 0;
+
+    function step() {
+      if (pointer >= state.codeSeq.length) {
+        const s = STAGES[state.stageIdx];
+        const missing = s.reqs.filter(r => !st.done.has(r));
+
+        if (st.fire) { S_FX.boom(); screenShake(); state.isBusy = false; openModal('🚒', '화재 경보 발생!', '요리가 끝났는데 [가스불 끄기🧯]를 하지 않았어요!', false); return; }
+        if (!st.topBun) { S_FX.boom(); screenShake(); state.isBusy = false; openModal('🍔', '햄버거 미완성', '맨 마지막에 [윗빵 덮기🍔]를 추가해 주세요!', false); return; }
+        if (missing.length > 0) { S_FX.boom(); screenShake(); state.isBusy = false; openModal('🧐', '필수 절차 누락', '빠진 조리 단계를 채워주세요!', false); return; }
+
+        stopTotalTimer();
+        S_FX.win(); fireworkShow();
+        document.getElementById('dinoEmoji').textContent = '🦖👑';
+        document.getElementById('dinoMsg').textContent = '완벽한 코딩 마스터!';
+        document.getElementById('tab2').classList.add('unlocked');
+        state.isBusy = false;
+        openModal('🏆', '마스터 키친 방탈출 성공!', '위생부터 화덕 안전까지 완벽하게 클리어했습니다!', true);
+        return;
+      }
+
+      const cmd = state.codeSeq[pointer];
+      const b = BLOCKS[cmd];
+      const tile = slots[pointer];
+
+      if (tile) { slots.forEach(t => t.style.borderColor = 'var(--accent-cyan)'); tile.style.borderColor = '#fbbf24'; }
+
+      let err = null;
+      if (cmd !== 'wear_gloves' && !st.gloves) {
+        err = `위생장갑을 끼지 않고 [${b.name}]를 실행했습니다! 위생 경보 발령!`;
+      } else {
+        switch (cmd) {
+          case 'wear_gloves': st.gloves = true; document.getElementById('boxGlove').className = 'stat-box active-ok'; document.getElementById('valGlove').textContent = '착용 완료 ⭕'; break;
+          case 'bottom_bun': st.bread = true; break;
+          case 'fire_on': st.fire = true; document.getElementById('boxStove').className = 'stat-box active-fire'; document.getElementById('valStove').textContent = '가열 중 🔥'; break;
+          case 'grill_meat': if (!st.fire) err = '화덕 불이 꺼져있어요!'; else st.grilled = true; break;
+          case 'fire_off': if (!st.fire) err = '가스불이 켜져있지 않아요!'; else { st.fire = false; document.getElementById('boxStove').className = 'stat-box active-ok'; document.getElementById('valStove').textContent = '안전 소화 ⭕'; } break;
+          case 'put_meat': if (!st.bread) err = '아랫빵이 없어요!'; else if (!st.grilled) err = '생고기입니다!'; else st.pattyOn = true; break;
+          case 'put_cheese': if (!st.bread) err = '아랫빵이 없어요!'; else if (!st.pattyOn && !st.done.has('put_meat')) err = '패티가 없어요!'; break;
+          case 'wash_veggie': st.washed = true; document.getElementById('boxPrep').className = 'stat-box active-ok'; document.getElementById('valPrep').textContent = '세척 완료 💧'; break;
+          case 'cut_veggie': if (!st.washed) err = '채소를 씻지 않고 썰었어요!'; else st.cut = true; break;
+          case 'put_veggie': if (!st.washed || !st.cut) err = '채소 손질(씻기+칼질)을 먼저 해주세요!'; break;
+          case 'open_sauce': st.sauceOpen = true; document.getElementById('boxPrep').className = 'stat-box active-ok'; document.getElementById('valPrep').textContent = '소스 개봉 🔓'; break;
+          case 'pour_sauce': if (!st.sauceOpen) err = '소스통 뚜껑을 열지 않고 짜서 터졌어요!'; break;
+          case 'top_bun': if (!st.pattyOn) err = '패티를 먼저 올려주세요!'; else st.topBun = true; break;
+        }
+      }
+
+      if (err) {
+        S_FX.boom(); screenShake(); state.isBusy = false;
+        if(tile) tile.style.borderColor = 'var(--accent-red)';
+        openModal('💥', '시뮬레이터 오류', err, false);
+        return;
+      }
+
+      S_FX.step(pointer);
+      st.done.add(cmd);
+      
+      const stack = document.getElementById('burgerStack');
+      const layerMap = { bottom_bun: 'ly-bun-bot', put_meat: 'ly-patty', put_cheese: 'ly-cheese', put_veggie: 'ly-veggie', pour_sauce: 'ly-sauce', top_bun: 'ly-bun-top' };
+      if (layerMap[cmd]) {
+        const d = document.createElement('div'); d.className = `b-item ${layerMap[cmd]}`;
+        stack.appendChild(d);
+      }
+
+      pointer++;
+      setTimeout(step, 650);
+    }
+    step();
+  };
+
+  let mCb = null;
+  function openModal(emoji, heading, desc, isPass, cb=null) {
+    document.getElementById('modalEmoji').textContent = emoji;
+    document.getElementById('modalHeading').textContent = heading;
+    const d = document.getElementById('modalDesc'); d.textContent = desc;
+    d.className = 'modal-desc' + (isPass ? ' pass' : '');
+    mCb = cb;
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+  window.closeModal = () => {
+    S_FX.click(); document.getElementById('modalOverlay').classList.remove('show');
+    if (mCb) { const fn = mCb; mCb = null; fn(); }
+  };
+
+  startTotalTimer();
+
+  document.getElementById('timerInput').value = 30;
+  updateTimer();
+  changeStage(0);
+})();
+</script>
+</body>
+</html>
